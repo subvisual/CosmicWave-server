@@ -103,13 +103,15 @@ async fn song(id: String) {
 struct NowPlayingResponse {
     total_duration: String,
     current_timestamp: String,
+    song_cids: Vec<String>,
 }
 
 impl NowPlayingResponse {
-    fn new(total_duration: String, current_timestamp: String) -> Self {
+    fn new(total_duration: String, current_timestamp: String, song_cids: Vec<String>) -> Self {
         Self {
             total_duration,
             current_timestamp,
+            song_cids,
         }
     }
 }
@@ -128,17 +130,32 @@ async fn now_playing() -> String {
                 .iter()
                 .fold(0.0, |acc, song| acc + song.duration);
 
+            let song_cids = all_playlist_songs
+                .iter()
+                .map(|song| song.id.clone())
+                .collect::<Vec<String>>();
+
             serde_json::to_string(&NowPlayingResponse::new(
                 total_playlist_duration.to_string(),
                 now.to_string(),
+                song_cids,
             ))
             .unwrap()
         } else {
-            serde_json::to_string(&NowPlayingResponse::new("0".to_string(), now.to_string()))
-                .unwrap()
+            serde_json::to_string(&NowPlayingResponse::new(
+                "0".to_string(),
+                now.to_string(),
+                Vec::new(),
+            ))
+            .unwrap()
         }
     } else {
-        serde_json::to_string(&NowPlayingResponse::new("0".to_string(), now.to_string())).unwrap()
+        serde_json::to_string(&NowPlayingResponse::new(
+            "0".to_string(),
+            now.to_string(),
+            Vec::new(),
+        ))
+        .unwrap()
     }
 }
 
