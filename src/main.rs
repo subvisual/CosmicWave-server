@@ -53,8 +53,6 @@ fn index() -> &'static str {
 async fn current_playlist() {
     let response = fetch_playlist().await;
 
-    println!("{:?}", response);
-
     match response {
         Some(value) => {
             let data = &value["data"][0]["data"];
@@ -117,11 +115,7 @@ async fn fetch_song(id: String) -> Option<Value> {
         .unwrap();
 
     match response.status() {
-        StatusCode::OK => {
-            let v = &response.text().await.unwrap();
-            println!("{}", v);
-            Some(serde_json::from_str(v).unwrap())
-        }
+        StatusCode::OK => Some(serde_json::from_str(&response.text().await.unwrap()).unwrap()),
         _ => None,
     }
 }
