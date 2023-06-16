@@ -99,7 +99,7 @@ async fn song(id: String) {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 struct NowPlayingResponse {
     total_duration: String,
     current_timestamp: String,
@@ -142,20 +142,10 @@ async fn now_playing() -> String {
             ))
             .unwrap()
         } else {
-            serde_json::to_string(&NowPlayingResponse::new(
-                "0".to_string(),
-                now.to_string(),
-                Vec::new(),
-            ))
-            .unwrap()
+            serde_json::to_string(&NowPlayingResponse::default()).unwrap()
         }
     } else {
-        serde_json::to_string(&NowPlayingResponse::new(
-            "0".to_string(),
-            now.to_string(),
-            Vec::new(),
-        ))
-        .unwrap()
+        serde_json::to_string(&NowPlayingResponse::default()).unwrap()
     }
 }
 
