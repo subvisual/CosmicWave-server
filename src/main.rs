@@ -97,11 +97,36 @@ async fn song(id: String) {
     }
 }
 
+#[get("/now")]
+async fn now_playing() {
+    if let Some(active_playlist) = fetch_playlist().await {
+        println!("{:?}", active_playlist);
+
+        if let Some(all_playlist_songs) = fetch_playlist_songs_by(active_playlist.playlist.id).await
+        {
+            println!("{:?}", all_playlist_songs);
+
+            let total_playlist_duration = all_playlist_songs
+                .iter()
+                .fold(0.0, |acc, song| acc + song.duration);
+
+            println!("{:?}", total_playlist_duration);
+        }
+    }
+}
+
 #[launch]
 fn rocket() -> _ {
     rocket::build().mount(
         "/",
-        routes![index, current_playlist, playlist, song, playlist_songs],
+        routes![
+            index,
+            current_playlist,
+            playlist,
+            song,
+            playlist_songs,
+            now_playing
+        ],
     )
 }
 
