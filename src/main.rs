@@ -1,3 +1,5 @@
+use std::time::{SystemTime, UNIX_EPOCH};
+
 use reqwest::StatusCode;
 use rocket::serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -97,8 +99,28 @@ async fn song(id: String) {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+struct NowPlayingResponse {
+    total_duration: String,
+    current_timestamp: String,
+}
+
+impl NowPlayingResponse {
+    fn new(total_duration: String, current_timestamp: String) -> Self {
+        Self {
+            total_duration,
+            current_timestamp,
+        }
+    }
+}
+
 #[get("/now")]
-async fn now_playing() {
+async fn now_playing() -> String {
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_millis();
+
     if let Some(active_playlist) = fetch_playlist().await {
         if let Some(all_playlist_songs) = fetch_playlist_songs_by(active_playlist.playlist.id).await
         {
@@ -106,8 +128,17 @@ async fn now_playing() {
                 .iter()
                 .fold(0.0, |acc, song| acc + song.duration);
 
-            println!("{:?}", total_playlist_duration);
+            serde_json::to_string(&NowPlayingResponse::new(
+                total_playlist_duration.to_string(),
+                now.to_string(),
+            ))
+            .unwrap()
+        } else {
+            serde_json::to_string(&NowPlayingResponse::new("0".to_string(), now.to_string()))
+                .unwrap()
         }
+    } else {
+        serde_json::to_string(&NowPlayingResponse::new("0".to_string(), now.to_string())).unwrap()
     }
 }
 
