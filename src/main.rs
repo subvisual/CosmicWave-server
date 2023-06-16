@@ -54,12 +54,8 @@ async fn current_playlist() {
     let response = fetch_playlist().await;
 
     match response {
-        Some(value) => {
-            let data = &value["data"][0]["data"];
-            println!(
-                "{:?}",
-                serde_json::from_value::<ActivePlaylist>(data.clone()).unwrap()
-            );
+        Some(playlist) => {
+            println!("{:?}", playlist);
         }
         _ => println!("nothing"),
     };
@@ -71,11 +67,7 @@ async fn song(id: String) {
 
     match response {
         Some(song) => {
-            let data = &song["data"];
-            println!(
-                "{:?}",
-                serde_json::from_value::<Song>(data.clone()).unwrap()
-            );
+            println!("{:?}", song);
         }
         _ => println!("nothing"),
     }
@@ -86,7 +78,7 @@ fn rocket() -> _ {
     rocket::build().mount("/", routes![index, current_playlist, song])
 }
 
-async fn fetch_playlist() -> Option<Value> {
+async fn fetch_playlist() -> Option<ActivePlaylist> {
     let client = reqwest::Client::new();
 
     let url = format!("{}/{}", BASE_URL, COLLECTION_PATH);
@@ -98,12 +90,20 @@ async fn fetch_playlist() -> Option<Value> {
         .unwrap();
 
     match response.status() {
-        StatusCode::OK => Some(serde_json::from_str(&response.text().await.unwrap()).unwrap()),
+        StatusCode::OK => {
+            let json_data: Value = serde_json::from_str(&response.text().await.unwrap()).unwrap();
+
+            let playlist =
+                serde_json::from_value::<ActivePlaylist>(json_data["data"][0]["data"].clone())
+                    .unwrap();
+
+            Some(playlist)
+        }
         _ => None,
     }
 }
 
-async fn fetch_song(id: String) -> Option<Value> {
+async fn fetch_song(id: String) -> Option<Song> {
     let client = reqwest::Client::new();
 
     let url = format!("{}/{}", BASE_URL, COLLECTION_PATH);
@@ -115,7 +115,13 @@ async fn fetch_song(id: String) -> Option<Value> {
         .unwrap();
 
     match response.status() {
-        StatusCode::OK => Some(serde_json::from_str(&response.text().await.unwrap()).unwrap()),
+        StatusCode::OK => {
+            let json_data: Value = serde_json::from_str(&response.text().await.unwrap()).unwrap();
+
+            let song = serde_json::from_value::<Song>(json_data["data"].clone()).unwrap();
+
+            Some(song)
+        }
         _ => None,
     }
 }
