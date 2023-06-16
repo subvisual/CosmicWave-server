@@ -30,7 +30,7 @@ struct Song {
 #[derive(Debug, Serialize, Deserialize)]
 struct Playlist {
     id: String,
-    songs: Vec<Song>,
+    songs: Vec<ForeignKey>,
     owner: Streamer,
 }
 
@@ -61,6 +61,30 @@ async fn current_playlist() {
     };
 }
 
+#[get("/playlist/<id>")]
+async fn playlist(id: String) {
+    let response = fetch_playlist_by(id).await;
+
+    match response {
+        Some(playlist) => {
+            println!("{:?}", playlist);
+        }
+        _ => println!("nothing"),
+    };
+}
+
+#[get("/playlist/<id>/songs")]
+async fn playlist_songs(id: String) {
+    let response = fetch_playlist_songs_by(id).await;
+
+    match response {
+        Some(songs) => {
+            println!("{:?}", songs);
+        }
+        _ => println!("nothing"),
+    };
+}
+
 #[get("/song/<id>")]
 async fn song(id: String) {
     let response = fetch_song(id).await;
@@ -75,7 +99,10 @@ async fn song(id: String) {
 
 #[launch]
 fn rocket() -> _ {
-    rocket::build().mount("/", routes![index, current_playlist, song])
+    rocket::build().mount(
+        "/",
+        routes![index, current_playlist, playlist, song, playlist_songs],
+    )
 }
 
 async fn fetch_playlist() -> Option<ActivePlaylist> {
@@ -100,6 +127,48 @@ async fn fetch_playlist() -> Option<ActivePlaylist> {
             Some(playlist)
         }
         _ => None,
+    }
+}
+
+async fn fetch_playlist_by(id: String) -> Option<Playlist> {
+    let client = reqwest::Client::new();
+
+    let url = format!("{}/{}", BASE_URL, COLLECTION_PATH);
+
+    let response = client
+        .get(format!("{}%2FPlaylist/records/{}", url, id))
+        .send()
+        .await
+        .unwrap();
+
+    match response.status() {
+        StatusCode::OK => {
+            let json_data: Value = serde_json::from_str(&response.text().await.unwrap()).unwrap();
+
+            let playlist = serde_json::from_value::<Playlist>(json_data["data"].clone()).unwrap();
+
+            Some(playlist)
+        }
+        _ => None,
+    }
+}
+
+async fn fetch_playlist_songs_by(id: String) -> Option<Vec<Song>> {
+    match fetch_playlist_by(id).await {
+        Some(playlist) => {
+            let song_ids: Vec<String> = playlist.songs.iter().map(|s| s.id.clone()).collect();
+
+            let mut songs = Vec::new();
+
+            for id in song_ids {
+                if let Some(song) = fetch_song(id).await {
+                    songs.push(song);
+                }
+            }
+
+            Some(songs)
+        }
+        None => None,
     }
 }
 
