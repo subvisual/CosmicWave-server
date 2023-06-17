@@ -62,50 +62,42 @@ fn health() -> Status {
 }
 
 #[get("/playlist")]
-async fn current_playlist() {
+async fn current_playlist() -> String {
     let response = fetch_playlist().await;
 
     match response {
-        Some(playlist) => {
-            println!("{:?}", playlist);
-        }
-        _ => println!("nothing"),
-    };
+        Some(playlist) => serde_json::to_string(&playlist).unwrap(),
+        _ => "".to_string(),
+    }
 }
 
 #[get("/playlist/<id>")]
-async fn playlist(id: String) {
+async fn playlist(id: String) -> String {
     let response = fetch_playlist_by(id).await;
 
     match response {
-        Some(playlist) => {
-            println!("{:?}", playlist);
-        }
-        _ => println!("nothing"),
-    };
+        Some(playlist) => serde_json::to_string(&playlist).unwrap(),
+        _ => "".to_string(),
+    }
 }
 
 #[get("/playlist/<id>/songs")]
-async fn playlist_songs(id: String) {
+async fn playlist_songs(id: String) -> String {
     let response = fetch_playlist_songs_by(id).await;
 
     match response {
-        Some(songs) => {
-            println!("{:?}", songs);
-        }
-        _ => println!("nothing"),
-    };
+        Some(songs) => serde_json::to_string(&songs).unwrap(),
+        _ => "".to_string(),
+    }
 }
 
 #[get("/song/<id>")]
-async fn song(id: String) {
+async fn song(id: String) -> String {
     let response = fetch_song(id).await;
 
     match response {
-        Some(song) => {
-            println!("{:?}", song);
-        }
-        _ => println!("nothing"),
+        Some(song) => serde_json::to_string(&song).unwrap(),
+        _ => "".to_string(),
     }
 }
 
