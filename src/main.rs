@@ -2,11 +2,11 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use reqwest::StatusCode;
 use rocket::{
-    http::{Method, Status},
+    fairing::{Fairing, Info, Kind},
+    http::{Header, Status},
     serde::{Deserialize, Serialize},
+    Request, Response,
 };
-use rocket_cors::{AllowedOrigins, CorsOptions};
-
 use serde_json::Value;
 
 #[macro_use]
@@ -249,19 +249,31 @@ async fn fetch_song(id: String) -> Option<Song> {
     }
 }
 
+pub struct CORS;
+
+#[rocket::async_trait]
+impl Fairing for CORS {
+    fn info(&self) -> Info {
+        Info {
+            name: "Add CORS headers to responses",
+            kind: Kind::Response,
+        }
+    }
+
+    async fn on_response<'r>(&self, _request: &'r Request<'_>, response: &mut Response<'r>) {
+        response.set_header(Header::new("Access-Control-Allow-Origin", "*"));
+        response.set_header(Header::new(
+            "Access-Control-Allow-Methods",
+            "POST, GET, PATCH, OPTIONS",
+        ));
+        response.set_header(Header::new("Access-Control-Allow-Headers", "*"));
+        response.set_header(Header::new("Access-Control-Allow-Credentials", "true"));
+    }
+}
+
 #[launch]
 fn rocket() -> _ {
-    let cors = CorsOptions::default()
-        .allowed_origins(AllowedOrigins::all())
-        .allowed_methods(
-            vec![Method::Get, Method::Post, Method::Patch]
-                .into_iter()
-                .map(From::from)
-                .collect(),
-        )
-        .allow_credentials(true);
-
-    rocket::build().attach(cors.to_cors().unwrap()).mount(
+    rocket::build().attach(CORS).mount(
         "/",
         routes![
             index,
