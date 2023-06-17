@@ -2,9 +2,11 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use reqwest::StatusCode;
 use rocket::{
-    http::Status,
+    http::{Method, Status},
     serde::{Deserialize, Serialize},
 };
+use rocket_cors::{AllowedOrigins, CorsOptions};
+
 use serde_json::Value;
 
 #[macro_use]
@@ -249,7 +251,17 @@ async fn fetch_song(id: String) -> Option<Song> {
 
 #[launch]
 fn rocket() -> _ {
-    rocket::build().mount(
+    let cors = CorsOptions::default()
+        .allowed_origins(AllowedOrigins::all())
+        .allowed_methods(
+            vec![Method::Get, Method::Post, Method::Patch]
+                .into_iter()
+                .map(From::from)
+                .collect(),
+        )
+        .allow_credentials(true);
+
+    rocket::build().attach(cors.to_cors().unwrap()).mount(
         "/",
         routes![
             index,
