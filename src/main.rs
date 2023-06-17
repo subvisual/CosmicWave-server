@@ -1,7 +1,10 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use reqwest::StatusCode;
-use rocket::serde::{Deserialize, Serialize};
+use rocket::{
+    http::Status,
+    serde::{Deserialize, Serialize},
+};
 use serde_json::Value;
 
 #[macro_use]
@@ -49,6 +52,11 @@ struct ActivePlaylist {
 #[get("/")]
 fn index() -> &'static str {
     "Hello, world!"
+}
+
+#[get("/healthz")]
+fn health() -> Status {
+    Status::Ok
 }
 
 #[get("/playlist")]
@@ -149,21 +157,6 @@ async fn now_playing() -> String {
     }
 }
 
-#[launch]
-fn rocket() -> _ {
-    rocket::build().mount(
-        "/",
-        routes![
-            index,
-            current_playlist,
-            playlist,
-            song,
-            playlist_songs,
-            now_playing
-        ],
-    )
-}
-
 async fn fetch_playlist() -> Option<ActivePlaylist> {
     let client = reqwest::Client::new();
 
@@ -252,4 +245,20 @@ async fn fetch_song(id: String) -> Option<Song> {
         }
         _ => None,
     }
+}
+
+#[launch]
+fn rocket() -> _ {
+    rocket::build().mount(
+        "/",
+        routes![
+            index,
+            health,
+            current_playlist,
+            playlist,
+            song,
+            playlist_songs,
+            now_playing
+        ],
+    )
 }
