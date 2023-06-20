@@ -152,7 +152,7 @@ fn calculate_current_song_timestamp(
             json!({
                 "id": current_song.id,
                 "filename": current_song.filename,
-                "timestamp": current_song.duration as u64 - time_since_playlist_start
+                "timestamp": current_song.duration as u64 - (current_song.duration as u64 - time_since_playlist_start)
             })
         }
         None => {
