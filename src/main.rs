@@ -1,4 +1,4 @@
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use reqwest::StatusCode;
 use rocket::{
@@ -7,7 +7,7 @@ use rocket::{
     serde::{Deserialize, Serialize},
     Request, Response,
 };
-use serde_json::Value;
+use serde_json::{json, Value};
 
 #[macro_use]
 extern crate rocket;
@@ -17,14 +17,14 @@ const COLLECTION_PATH: &str = "pk%2F0x98550a271a85832718f29cf70384e551b852ada0be
 
 type Streamer = ForeignKey;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 struct ForeignKey {
     id: String,
     #[serde(alias = "collectionId")]
     collection_id: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 struct Song {
     id: String,
     title: String,
@@ -41,7 +41,7 @@ struct Playlist {
     owner: Streamer,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct ActivePlaylist {
     id: String,
     playlist: ForeignKey,
@@ -106,14 +106,57 @@ struct NowPlayingResponse {
     total_duration: String,
     current_timestamp: String,
     song_cids: Vec<String>,
+    current_song: serde_json::Value,
 }
 
 impl NowPlayingResponse {
-    fn new(total_duration: String, current_timestamp: String, song_cids: Vec<String>) -> Self {
+    fn new(
+        total_duration: String,
+        current_timestamp: String,
+        song_cids: Vec<String>,
+        current_song: serde_json::Value,
+    ) -> Self {
         Self {
             total_duration,
             current_timestamp,
             song_cids,
+            current_song,
+        }
+    }
+}
+
+fn calculate_current_song_timestamp(
+    playlist: ActivePlaylist,
+    songs: Vec<Song>,
+) -> serde_json::Value {
+    let mut time_since_playlist_start =
+        SystemTime::elapsed(&(UNIX_EPOCH + Duration::from_secs(playlist.start_timestamp as u64)))
+            .unwrap()
+            .as_secs();
+
+    let song = songs.iter().find(|song| {
+        if time_since_playlist_start > 0 {
+            if time_since_playlist_start >= song.duration as u64 {
+                time_since_playlist_start -= song.duration as u64;
+                false
+            } else {
+                true
+            }
+        } else {
+            true
+        }
+    });
+
+    match song {
+        Some(current_song) => {
+            json!({
+                "id": current_song.id,
+                "filename": current_song.filename,
+                "timestamp": current_song.duration as u64 - time_since_playlist_start
+            })
+        }
+        None => {
+            json!({"id": "", "filename": "", "timestamp": ""})
         }
     }
 }
@@ -126,8 +169,14 @@ async fn now_playing() -> String {
         .as_millis();
 
     if let Some(active_playlist) = fetch_playlist().await {
-        if let Some(all_playlist_songs) = fetch_playlist_songs_by(active_playlist.playlist.id).await
+        if let Some(all_playlist_songs) =
+            fetch_playlist_songs_by(active_playlist.playlist.id.clone()).await
         {
+            let current_song = calculate_current_song_timestamp(
+                active_playlist.clone(),
+                all_playlist_songs.clone(),
+            );
+
             let total_playlist_duration = all_playlist_songs
                 .iter()
                 .fold(0.0, |acc, song| acc + song.duration);
@@ -141,6 +190,7 @@ async fn now_playing() -> String {
                 total_playlist_duration.to_string(),
                 now.to_string(),
                 song_cids,
+                current_song,
             ))
             .unwrap()
         } else {
