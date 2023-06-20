@@ -108,6 +108,7 @@ struct NowPlayingResponse {
     total_duration: String,
     current_timestamp: String,
     song_cids: Vec<String>,
+    song_names: Vec<String>,
     current_song: serde_json::Value,
 }
 
@@ -116,12 +117,14 @@ impl NowPlayingResponse {
         total_duration: String,
         current_timestamp: String,
         song_cids: Vec<String>,
+        song_names: Vec<String>,
         current_song: serde_json::Value,
     ) -> Self {
         Self {
             total_duration,
             current_timestamp,
             song_cids,
+            song_names,
             current_song,
         }
     }
@@ -188,10 +191,16 @@ async fn now_playing() -> String {
                 .map(|song| song.id.clone())
                 .collect::<Vec<String>>();
 
+            let song_names = all_playlist_songs
+                .iter()
+                .map(|song| song.filename.clone())
+                .collect::<Vec<String>>();
+
             serde_json::to_string(&NowPlayingResponse::new(
                 total_playlist_duration.to_string(),
                 now.to_string(),
                 song_cids,
+                song_names,
                 current_song,
             ))
             .unwrap()
