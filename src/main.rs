@@ -13,7 +13,9 @@ use serde_json::{json, Value};
 extern crate rocket;
 
 const BASE_URL: &str = "https://testnet.polybase.xyz/v0/collections";
-const COLLECTION_PATH: &str = "pk%2F0x98550a271a85832718f29cf70384e551b852ada0beec830f9c682b7de22d945ad828dbc50de17194936565d27ef6da583c8e8856d7f27bbd97b34419401e5b47%2FSoundverseTest3";
+// const COLLECTION_PATH: &str = "pk%2F0x98550a271a85832718f29cf70384e551b852ada0beec830f9c682b7de22d945ad828dbc50de17194936565d27ef6da583c8e8856d7f27bbd97b34419401e5b47%2FSoundverseTest3";
+
+const COLLECTION_PATH: &str = "pk%2F0x90a457e83a58912e705b11a0d8e9cb7aacadb449ee1a7c68ba244a091448410a751ce1b483798c3352044a472d173f2cd2f65e33b231a868d28b684f33d810ca%2Ftestcosmicwave";
 
 type Streamer = ForeignKey;
 
